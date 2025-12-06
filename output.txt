@@ -1,0 +1,1923 @@
+﻿Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\java
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\resources
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\exception
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\jpa
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\rest
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\API.java
+Размер: 175 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4;
+
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.core.Application;
+
+@ApplicationPath("/api")
+public class API extends Application {
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\Util.java
+Размер: 647 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4;
+
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
+public class Util {
+    public static String encodeString(String str) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(str.getBytes(StandardCharsets.UTF_8));
+
+            return String.format("%032X", new BigInteger(1, bytes));
+
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    public static boolean stringHashEquals(String str, String hash) {
+        return hash.equals(encodeString(str));
+    }
+
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean\AuthorizationBean.java
+Размер: 2996 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.bean;
+
+import kr_k.weblab4.Util;
+import kr_k.weblab4.jpa.UserEntity;
+import jakarta.ejb.Singleton;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
+import java.util.HashMap;
+import java.util.UUID;
+
+@Singleton
+public class AuthorizationBean {
+
+    //key: token, value: login
+    private final HashMap<String, String> authorizatedUsers = new HashMap<>();
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public AuthResultBean tryLogin(UserBean user) {
+        var result = new AuthResultBean();
+        String token = user.getToken();
+
+        if(authorizatedUsers.containsKey(token)) {
+            result.setToken(token);
+            result.setLogin(authorizatedUsers.get(token));
+            return result.error("You are already logged in");
+        }
+
+        UserEntity userEntity = entityManager.find(UserEntity.class, user.getLogin());
+        if(userEntity == null) return result.error("This username aren't registred");
+
+        if(!Util.stringHashEquals(user.getPassword(), userEntity.getPassword()))
+            return result.error("Incorrect password");
+
+        token = UUID.randomUUID().toString();
+        result.setToken(token);
+        result.setLogin(user.getLogin());
+        authorizatedUsers.put(token, user.getLogin());
+
+        return result.success();
+    }
+
+    public AuthResultBean tryRegister(UserBean user) {
+        var result = new AuthResultBean();
+        String token = user.getToken();
+
+        if(authorizatedUsers.containsKey(token)) {
+            result.setToken(token);
+            result.setLogin(authorizatedUsers.get(token));
+            return result.error("You are already logged in");
+        }
+
+        UserEntity userEntity = entityManager.find(UserEntity.class, user.getLogin());
+        if(userEntity != null) return result.error("This username is already registred");
+
+        userEntity = new UserEntity(user.getLogin(), Util.encodeString(user.getPassword()));
+        entityManager.persist(userEntity);
+
+        token = UUID.randomUUID().toString();
+        result.setToken(token);
+        result.setLogin(user.getLogin());
+        authorizatedUsers.put(token, user.getLogin());
+
+        return result.success();
+    }
+
+    public AuthResultBean logout(UserBean user) {
+        var result = new AuthResultBean();
+
+        if(authorizatedUsers.remove(user.getToken()) == null)
+            return result.error("You aren't logged in");
+
+        return result.success();
+    }
+
+    public AuthResultBean checkAuthorization(String token) {
+        var result = new AuthResultBean();
+        String login = authorizatedUsers.get(token);
+        System.out.println(login + ": " + token);
+
+        if(login == null)
+            return result.error("You aren't logged in");
+
+        result.setLogin(login);
+        result.setToken(token);
+        return result.success();
+    }
+
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean\AuthResultBean.java
+Размер: 1260 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.bean;
+
+import jakarta.ejb.Stateless;
+import jakarta.json.bind.annotation.JsonbTransient;
+
+@Stateless
+public class AuthResultBean {
+    private boolean success = false;
+    private String login;
+    private String error;
+    private Object data;
+
+    @JsonbTransient
+    private String token;
+
+    public AuthResultBean success() {
+        setSuccess(true);
+        return this;
+    }
+
+    public AuthResultBean error(String error) {
+        setError(error);
+        return this;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
+    }
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean\CheckHitBean.java
+Размер: 2633 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.bean;
+
+import kr_k.weblab4.jpa.ResultEntity;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateful;
+import jakarta.json.bind.annotation.JsonbTransient;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
+@Stateful
+public class CheckHitBean {
+
+    private double x;
+    private double y;
+    private double r;
+    private boolean result;
+    private ZonedDateTime dateTime;
+    private double execTime;
+
+    @EJB
+    @JsonbTransient
+    private ResultsBean resultsBean;
+
+    public void makeCheckHit(InputBean input) {
+        long startTime = System.nanoTime();
+        x = input.getX();
+        y = input.getY();
+        r = input.getR();
+        result = checkHit(x, y, r);
+        dateTime = ZonedDateTime.now(ZoneId.of("+00:00"));
+        execTime = (double) (System.nanoTime() - startTime) / 1000;
+
+        resultsBean.newResult(this, input.getLogin());
+    }
+
+    private static boolean checkHit(double x, double y, double r) {
+        if (!(x >= -4 && x <= 4) || !(y >= -3 && y <= 5) || !(r > 0 && r <= 4)) {
+            return false;
+        }
+
+        if (x > 0) {
+            if (y > 0) return false; // up right
+            else return 2*x - r <= y; // down right
+        } else {
+            if (y >= 0) return x >= -r && y <= (r / 2); // up left
+            else return x * x + y * y <= (r * r / 4); // down left
+        }
+    }
+
+    public ResultEntity asResultEntity() {
+        ResultEntity resultEntity = new ResultEntity();
+        resultEntity.setX(x);
+        resultEntity.setY(y);
+        resultEntity.setR(r);
+        resultEntity.setResult(result);
+        resultEntity.setDateTime(dateTime);
+        resultEntity.setExecTime(execTime);
+        return resultEntity;
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public double getR() {
+        return r;
+    }
+
+    public void setR(double r) {
+        this.r = r;
+    }
+
+    public boolean isResult() {
+        return result;
+    }
+
+    public void setResult(boolean result) {
+        this.result = result;
+    }
+
+    public ZonedDateTime getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(ZonedDateTime dateTime) {
+        this.dateTime = dateTime;
+    }
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean\InputBean.java
+Размер: 706 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.bean;
+
+import jakarta.ejb.Stateless;
+
+@Stateless
+public class InputBean {
+    private double x;
+    private double y;
+    private double r;
+
+    private String login;
+
+    public double getX() {
+        return x;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public double getR() {
+        return r;
+    }
+
+    public void setR(double r) {
+        this.r = r;
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean\ResultsBean.java
+Размер: 1759 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.bean;
+
+import kr_k.weblab4.jpa.ResultEntity;
+import kr_k.weblab4.jpa.UserEntity;
+import jakarta.ejb.Singleton;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Singleton
+public class ResultsBean {
+
+    private final HashMap<String, List<CheckHitBean>> results = new HashMap<>();
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public void newResult(CheckHitBean checkHitBean, String login) {
+        loadResults(login);
+        ResultEntity result = checkHitBean.asResultEntity();
+
+        result.setOwner(new UserEntity(login));
+
+        results.get(login).add(checkHitBean);
+        entityManager.persist(result);
+    }
+
+    public void clearResults(String login) {
+        loadResults(login);
+        results.get(login).clear();
+
+        UserEntity userEntity = entityManager.find(UserEntity.class, login);
+        userEntity.getResults().clear();
+        entityManager.persist(userEntity);
+    }
+
+    public List<CheckHitBean> getResults(String login) {
+        loadResults(login);
+        return results.get(login);
+    }
+
+    private void loadResults(String login) {
+        if(results.containsKey(login)) return;
+
+        UserEntity userEntity = entityManager.find(UserEntity.class, login);
+        if(userEntity != null) {
+            results.put(login,
+                    userEntity.getResults().stream().map(ResultEntity::asCheckHitBean)
+                            .collect(Collectors.toCollection(LinkedList::new)));
+        }
+        else results.put(login, new LinkedList<>());
+    }
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean\UserBean.java
+Размер: 883 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.bean;
+
+import jakarta.ejb.Stateless;
+
+@Stateless
+public class UserBean {
+    private String login;
+    private String password;
+    private String token;
+
+    public String getLogin() {
+        return login;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    @Override
+    public String toString() {
+        return "UserBean{" +
+               "login='" + login + '\'' +
+               ", password='" + password + '\'' +
+               ", token='" + token + '\'' +
+               '}';
+    }
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\exception\ProcessingExceptionMapper.java
+Размер: 750 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.exception;
+
+import kr_k.weblab4.bean.AuthResultBean;
+import jakarta.annotation.Priority;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
+
+@Provider
+@Priority(1)
+@Produces(MediaType.APPLICATION_JSON)
+public class ProcessingExceptionMapper extends Throwable implements ExceptionMapper<ProcessingException> {
+    @Override
+    public Response toResponse(ProcessingException e) {
+        var res = new AuthResultBean();
+        res.setError("Invalid request parametrs");
+        return Response.status(400).entity(res).build();
+    }
+
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\jpa\ResultEntity.java
+Размер: 1981 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.jpa;
+
+import kr_k.weblab4.bean.CheckHitBean;
+import jakarta.json.bind.annotation.JsonbTransient;
+import jakarta.persistence.*;
+
+import java.time.ZonedDateTime;
+
+@Entity
+@Table
+public class ResultEntity {
+    @Id
+    @GeneratedValue
+    @JsonbTransient
+    private Long id;
+
+    private double x;
+    private double y;
+    private double r;
+    private boolean result;
+    private ZonedDateTime dateTime;
+    private double execTime;
+
+    @ManyToOne
+    @JoinColumn
+    @JsonbTransient
+    private UserEntity owner;
+
+    public CheckHitBean asCheckHitBean() {
+        CheckHitBean res = new CheckHitBean();
+        res.setX(x);
+        res.setY(y);
+        res.setR(r);
+        res.setResult(result);
+        res.setDateTime(dateTime);
+        res.setExecTime(execTime);
+        return res;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public double getR() {
+        return r;
+    }
+
+    public void setR(double r) {
+        this.r = r;
+    }
+
+    public boolean isResult() {
+        return result;
+    }
+
+    public void setResult(boolean result) {
+        this.result = result;
+    }
+
+    public ZonedDateTime getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(ZonedDateTime dateTime) {
+        this.dateTime = dateTime;
+    }
+
+    public double getExecTime() {
+        return execTime;
+    }
+
+    public void setExecTime(double execTime) {
+        this.execTime = execTime;
+    }
+
+    public UserEntity getOwner() {
+        return owner;
+    }
+
+    public void setOwner(UserEntity owner) {
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\jpa\UserEntity.java
+Размер: 1053 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.jpa;
+
+import jakarta.persistence.*;
+
+import java.util.List;
+
+@Entity
+@Table
+public class UserEntity {
+    @Id
+    private String login;
+    private String password;
+
+    @OneToMany(mappedBy = "owner", orphanRemoval = true, cascade = CascadeType.ALL)
+    private List<ResultEntity> results;
+
+    public UserEntity() {}
+
+    public UserEntity(String login) {
+        this.login = login;
+    }
+
+    public UserEntity(String login, String password) {
+        this.login = login;
+        this.password = password;
+    }
+
+
+    public String getLogin() {
+        return login;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public List<ResultEntity> getResults() {
+        return results;
+    }
+
+    public void setResults(List<ResultEntity> results) {
+        this.results = results;
+    }
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\rest\AuthResourse.java
+Размер: 2113 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.rest;
+
+import kr_k.weblab4.bean.AuthResultBean;
+import kr_k.weblab4.bean.AuthorizationBean;
+import kr_k.weblab4.bean.UserBean;
+import jakarta.ejb.EJB;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.NewCookie;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.Provider;
+
+@Provider
+@Path("/auth")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+public class AuthResourse {
+
+    @EJB
+    private AuthorizationBean authorizationBean;
+
+    @POST
+    @Path("/login")
+    public Response login(UserBean user, @CookieParam("token") String token) {
+        if(user == null) user = new UserBean();
+        user.setToken(token);
+
+        var result = authorizationBean.tryLogin(user);
+        return makeResponse(result);
+    }
+
+    @POST
+    @Path("/register")
+    public Response register(UserBean user, @CookieParam("token") String token) {
+        if(user == null) user = new UserBean();
+        user.setToken(token);
+        var result = authorizationBean.tryRegister(user);
+
+        return makeResponse(result);
+    }
+
+    @POST
+    @Path("/logout")
+    public Response logout(@CookieParam("token") String token) {
+        UserBean user = new UserBean();
+        user.setToken(token);
+        var result = authorizationBean.logout(user);
+
+        return makeResponse(result);
+    }
+
+    @GET
+    @Path("/")
+    public Response checkAuth(@CookieParam("token") String token) {
+        var result = authorizationBean.checkAuthorization(token);
+        return makeResponse(result);
+    }
+
+    private Response makeResponse(AuthResultBean result) {
+        Response.ResponseBuilder response;
+        if(result.isSuccess()) response = Response.ok();
+        else response = Response.status(Response.Status.BAD_REQUEST);
+
+        System.out.println("setting token: " + result.getToken());
+        var cookie = new NewCookie("token", result.getToken(), "/", null, null, 1209600, false);
+        return response.cookie(cookie).entity(result).build();
+    }
+
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\rest\CheckHitResourse.java
+Размер: 1935 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.rest;
+
+import kr_k.weblab4.bean.*;
+import jakarta.ejb.EJB;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.Provider;
+
+@Provider
+@Path("/")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+public class CheckHitResourse {
+
+    @EJB
+    private ResultsBean results;
+    @EJB
+    private CheckHitBean checkHitBean;
+
+    @EJB
+    private AuthorizationBean authorizationBean;
+
+    @GET
+    @Path("/results")
+    public Response getResults(@CookieParam("token") String token) {
+        AuthResultBean auth = authorizationBean.checkAuthorization(token);
+        if(!auth.isSuccess()) return makeResponse(auth);
+
+        var res = results.getResults(auth.getLogin());
+        auth.setData(res);
+        return makeResponse(auth);
+    }
+
+    @POST
+    @Path("/check")
+    public Response newResult(InputBean input, @CookieParam("token") String token) {
+        AuthResultBean auth = authorizationBean.checkAuthorization(token);
+        if(!auth.isSuccess()) return makeResponse(auth);
+
+        input.setLogin(auth.getLogin());
+        checkHitBean.makeCheckHit(input);
+        auth.setData(checkHitBean);
+        return makeResponse(auth);
+    }
+
+    @GET
+    @Path("/clear")
+    public Response clearResults(@CookieParam("token") String token) {
+        AuthResultBean auth = authorizationBean.checkAuthorization(token);
+        if(!auth.isSuccess()) return makeResponse(auth);
+
+        results.clearResults(auth.getLogin());
+        return makeResponse(auth);
+    }
+
+    private Response makeResponse(AuthResultBean authResultBean) {
+        if(authResultBean.isSuccess()) {
+            return Response.ok().entity(authResultBean).build();
+        }
+        else return Response.status(Response.Status.UNAUTHORIZED).entity(authResultBean).build();
+    }
+
+
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\rest\CORSFilter.java
+Размер: 1258 байт
+Расширение: .java
+Содержимое:
+package kr_k.weblab4.rest;
+
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerResponseContext;
+import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.ext.Provider;
+
+import java.io.IOException;
+
+@Provider
+public class CORSFilter implements ContainerResponseFilter {
+
+    @Override
+    public void filter(final ContainerRequestContext requestContext,
+                       final ContainerResponseContext cres) throws IOException {
+        String origin = requestContext.getHeaderString("Origin");
+        if(origin == null ||
+                origin.startsWith("http://localhost:3000") ||
+                origin.startsWith("http://localhost:19123")) {
+            origin = "http://localhost:3000";
+        }
+
+
+        cres.getHeaders().add("Access-Control-Allow-Origin", origin);
+        cres.getHeaders().add("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, location-origin");
+        cres.getHeaders().add("Access-Control-Allow-Credentials", "true");
+        cres.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+        cres.getHeaders().add("Access-Control-Max-Age", "1209600");
+    }
+
+}
+---
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\resources\META-INF
+Папка: C:\Code\web\lab4\itmo-web-lab-4\src\main\resources\WEB-INF
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\resources\META-INF\beans.xml
+Размер: 320 байт
+Расширение: .xml
+Содержимое:
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="https://jakarta.ee/xml/ns/jakartaee"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/beans_3_0.xsd"
+       bean-discovery-mode="annotated">
+
+</beans>
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\resources\META-INF\persistence.xml
+Размер: 867 байт
+Расширение: .xml
+Содержимое:
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+             version="3.0">
+  <persistence-unit name="default">
+    <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+    <jta-data-source>java:jboss/datasources/PostgresDS</jta-data-source>
+
+    <class>kr_k.weblab4.jpa.UserEntity</class>
+    <class>kr_k.weblab4.jpa.ResultEntity</class>
+
+    <properties>
+      <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
+      <property name="hibernate.hbm2ddl.auto" value="update"/>
+    </properties>
+
+  </persistence-unit>
+</persistence>
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\resources\WEB-INF\web.xml
+Размер: 424 байт
+Расширение: .xml
+Содержимое:
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+                      http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    <session-config>
+        <session-timeout>-1</session-timeout>
+    </session-config>
+</web-app>
+---
+Папка: C:\Code\web\lab4\itmo-web-lab-4\front\node_modules
+Папка: C:\Code\web\lab4\itmo-web-lab-4\front\public
+Папка: C:\Code\web\lab4\itmo-web-lab-4\front\src
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\jsconfig.json
+Размер: 55 байт
+Расширение: .json
+Содержимое:
+{
+  "compilerOptions": {
+    "baseUrl": "src"
+  }
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\package-lock.json
+Размер: 731966 байт
+Расширение: .json
+Содержимое:
+{
+  "name": "front",
+  "version": "0.1.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "front",
+      "version": "0.1.0",
+      "dependencies": {
+        "@reduxjs/toolkit": "^2.0.1",
+        "@testing-library/jest-dom": "^5.17.0",
+        "@testing-library/react": "^13.4.0",
+        "@testing-library/user-event": "^13.5.0",
+        "desmos-react": "^1.2.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-redux": "^9.1.0",
+        "react-router-dom": "^6.21.1",
+        "react-scripts": "^5.0.1",
+        "react-toolbox": "^2.0.0-beta.13",
+        "styled-components": "^6.1.8",
+        "web-vitals": "^2.1.4"
+      },
+      "devDependencies": {
+        "@babel/plugin-proposal-export-default-from": "^7.23.3"
+      }
+    },
+    "node_modules/@aashutoshrathi/word-wrap": {
+      "version": "1.2.6",
+      "resolved": "https://registry.npmjs.org/@aashutoshrathi/word-wrap/-/word-wrap-1.2.6.tgz",
+      "integrity": "sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==",
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/@adobe/css-tools": {
+      "version": "4.3.2",
+      "resolved": "https://registry.npmjs.org/@adobe/css-tools/-/css-tools-4.3.2.tgz",
+      "integrity": "sha512-DA5a1C0gD/pLOvhv33YMrbf2FK3oUzwNl9oOJqE4XVjuEtt6XIakRcsd7eLiOSPkp1kTRQGICTA8cKra/vFbjw=="
+    },
+    "node_modules/@alloc/quick-lru": {
+      "version": "5.2.0",
+      "resolved": "https://registry.npmjs.org/@alloc/quick-lru/-/quick-lru-5.2.0.tgz",
+      "integrity": "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==",
+      "engines": {
+        "node": ">=10"
+      },
+      "funding": {
+        "url": "https://github.com/sponsors/sindresorhus"
+      }
+    },
+    "node_modules/@ampproject/remapping": {
+      "version": "2.2.1",
+      "resolved": "https://registry.npmjs.org/@ampproject/remapping/-/remapping-2.2.1.tgz",
+      "integrity": "sha512-lFMjJTrFL3j7L9yBxwYfCq2k6qqwHyzuUl/XBnif78PWTJYyL/dfowQHWE3sp6U6ZzqWiiIZnpTMO96zhkjwtg==",
+      "dependencies": {
+        "@jridgewell/gen-mapping": "^0.3.0",
+        "@jridgewell/trace-mapping": "^0.3.9"
+      },
+      "engines": {
+        "node": ">=6.0.0"
+      }
+    },
+    "node_modules/@babel/code-frame": {
+      "version": "7.23.4",
+      "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.23.4.tgz",
+      "integrity": "sha512-r1IONyb6Ia+jYR2vvIDhdWdlTGhqbBoFqLTQidzZ4kepUFH15ejXvFHxCVbtl7BOXIudsIubf4E81xeA3h3IXA==",
+      "dependencies": {
+        "@babel/highlight": "^7.23.4",
+        "chalk": "^2.4.2"
+      },
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/compat-data": {
+      "version": "7.23.3",
+      "resolved": "https://registry.npmjs.org/@babel/compat-data/-/compat-data-7.23.3.tgz",
+      "integrity": "sha512-BmR4bWbDIoFJmJ9z2cZ8Gmm2MXgEDgjdWgpKmKWUt54UGFJdlj31ECtbaDvCG/qVdG3AQ1SfpZEs01lUFbzLOQ==",
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/core": {
+      "version": "7.23.3",
+      "resolved": "https://registry.npmjs.org/@babel/core/-/core-7.23.3.tgz",
+      "integrity": "sha512-Jg+msLuNuCJDyBvFv5+OKOUjWMZgd85bKjbICd3zWrKAo+bJ49HJufi7CQE0q0uR8NGyO6xkCACScNqyjHSZew==",
+      "dependencies": {
+        "@ampproject/remapping": "^2.2.0",
+        "@babel/code-frame": "^7.22.13",
+        "@babel/generator": "^7.23.3",
+        "@babel/helper-compilation-targets": "^7.22.15",
+        "@babel/helper-module-transforms": "^7.23.3",
+        "@babel/helpers": "^7.23.2",
+        "@babel/parser": "^7.23.3",
+        "@babel/template": "^7.22.15",
+        "@babel/traverse": "^7.23.3",
+        "@babel/types": "^7.23.3",
+        "convert-source-map": "^2.0.0",
+... [файл слишком большой, показаны первые 100 строк]
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\package.json
+Размер: 1197 байт
+Расширение: .json
+Содержимое:
+{
+  "name": "front",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.0.1",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "desmos-react": "^1.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^9.1.0",
+    "react-router-dom": "^6.21.1",
+    "react-scripts": "^5.0.1",
+    "react-toolbox": "^2.0.0-beta.13",
+    "styled-components": "^6.1.8",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build && xcopy /E /H /C /I build ..\\src\\main\\webapp\n",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-export-default-from": "^7.23.3"
+  }
+}
+---
+Папка: C:\Code\web\lab4\itmo-web-lab-4\front\public\main
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\public\index.html
+Размер: 369 байт
+Расширение: .html
+Содержимое:
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WebLab4-react</title>
+    <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <div id="root"></div>
+
+  </body>
+</html>
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\public\main\index.html
+Размер: 191 байт
+Расширение: .html
+Содержимое:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv='refresh' content='0; URL=/WebLab4'>
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+---
+Папка: C:\Code\web\lab4\itmo-web-lab-4\front\src\login
+Папка: C:\Code\web\lab4\itmo-web-lab-4\front\src\main
+Папка: C:\Code\web\lab4\itmo-web-lab-4\front\src\redux
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\Header.js
+Размер: 376 байт
+Расширение: .js
+Содержимое:
+import {Outlet} from "react-router-dom";
+
+function Header() {
+    return (<>
+        <div className="container" id="header">
+            <p>Ð›Ð°Ð±Ð¾Ñ€Ð°Ñ‚Ð¾Ñ€Ð½Ð°Ñ Ñ€Ð°Ð±Ð¾Ñ‚Ð° #4</p>
+            <p>Ð’Ñ‹Ð¿Ð¾Ð»Ð½Ð¸Ð» ÐšÑ€Ð°ÐºÐ¾Ð² ÐšÐ¸Ñ€Ð¸Ð»Ð» P32131</p>
+            <p>Ð’Ð°Ñ€Ð¸Ð°Ð½Ñ‚ 2838</p>
+        </div>
+        <Outlet/>
+    </>);
+}
+
+export default Header;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\index.css
+Размер: 379 байт
+Расширение: .css
+Содержимое:
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\index.js
+Размер: 323 байт
+Расширение: .js
+Содержимое:
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './main.css';
+import Routed from "./router";
+import store from "./store";
+import {Provider} from "react-redux";
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<Provider store={store}><Routed/></Provider>);
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main.css
+Размер: 2714 байт
+Расширение: .css
+Содержимое:
+* {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    outline: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: sans-serif;
+    color: #c9d1d9;
+    display: block;
+    background-color: #0d1117;
+}
+
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background-color: #21262d;
+    border-radius: 0.2em;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #3a424f;
+    border-radius: 0.2em;
+}
+
+.container {
+    background-color: #161b22;
+    border: 1px solid darkgray;
+    padding: 10px 20px;
+    margin: 5px 7px;
+    height: fit-content;
+    width: fit-content;
+    border-radius: 0.6em;
+}
+
+#main-table {
+    vertical-align: top;
+    display: table;
+    height: fit-content;
+    width: fit-content;
+    padding: 0;
+    margin: 0;
+}
+
+#main-table .row-like .cell-like {
+    vertical-align: top;
+    display: table-cell;
+}
+
+button:hover, #y-select:focus {
+    background-color: #30363d;
+    border-color: #8b949e;
+}
+
+button, .box, #result-table tr td {
+    color: #c9d1d9;
+    background-color: #21262d;
+    padding: 2px;
+    border: 2px solid rgba(240, 246, 252, 0.1);
+}
+
+button {
+    cursor: pointer;
+}
+
+Button:hover, #y-select:focus {
+    background-color: #30363d;
+    border-color: #8b949e;
+}
+
+Button, .box, #result-table tr td {
+    color: #c9d1d9;
+    background-color: #21262d;
+    padding: 2px;
+    border: 2px solid rgba(240, 246, 252, 0.1);
+}
+
+Button {
+    cursor: pointer;
+}
+
+.small-button {
+    width: 25px;
+    height: 25px;
+    position: relative;
+}
+
+button:active {
+    background-color: #6b6e39;
+}
+
+Button:active {
+    background-color: #6b6e39;
+}
+
+.rounded {
+... [файл слишком большой, показаны первые 100 строк]
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\router.js
+Размер: 748 байт
+Расширение: .js
+Содержимое:
+import {createBrowserRouter, RouterProvider} from "react-router-dom";
+import Header from "./Header";
+import LoginAppFetcher, {getLogin} from "./login/LoginAppFetcher";
+import MainAppFetcher, {LoadResults} from "./main/MainAppFetcher";
+import React from "react";
+
+export default function Routed(props) {
+
+    const router = createBrowserRouter([{
+        path: "WebLab4",
+        element: <Header/>,
+        children: [{
+            index: true,
+            element: <LoginAppFetcher/>,
+            loader: getLogin
+        },
+            {
+                path: "main",
+                element: <MainAppFetcher/>,
+                loader: LoadResults
+            }]
+    }]);
+
+    return <RouterProvider router={router}/>;
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\store.js
+Размер: 268 байт
+Расширение: .js
+Содержимое:
+import loginReducer from "./redux/login";
+import passwordReducer from "./redux/password";
+import {configureStore} from "@reduxjs/toolkit";
+
+export default configureStore({
+    reducer: {
+        login: loginReducer,
+        password: passwordReducer
+    },
+})
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\Util.js
+Размер: 611 байт
+Расширение: .js
+Содержимое:
+export async function autoFetch(url, method, body, disableAlert) {
+    let res = {success: false};
+    try {
+        let raw = await fetch('/WebLab4/api/' + url, {
+            method: method ? method : 'GET',
+            headers: {'Content-Type': 'application/json;charset=utf-8'},
+            credentials: 'include',
+            body: body ? JSON.stringify(body) : undefined
+        });
+        res = await raw.json();
+    } catch (e) {
+        res.error = e;
+    }
+
+    if (!res.success && !disableAlert) {
+        alert('Error: ' + res.error);
+    }
+    console.log(res);
+    return res;
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\login\LoginApp.js
+Размер: 1634 байт
+Расширение: .js
+Содержимое:
+function LoginApp({fetcher}) {
+
+    return (
+        <div className="container">
+            <table id="input-table">
+                <tbody>
+                <tr>
+                    <td colSpan="3" className="input-cell-l">Ð’Ð¾Ð¹Ð´Ð¸ Ð¸Ð»Ð¸ Ð·Ð°Ñ€ÐµÐ³Ð¸ÑÑ‚Ñ€Ð¸Ñ€ÑƒÐ¹ÑÑ:</td>
+                </tr>
+
+                <tr>
+                    <td className="input-cell-l">Ð›Ð¾Ð³Ð¸Ð½:</td>
+                    <td>
+                        <input className="input-select rounded box" name="login" placeholder="Enter login"
+                               required type="text" onChange={fetcher.loginChangeHandle}/>
+                    </td>
+                </tr>
+                <tr>
+                    <td className="input-cell-l">ÐŸÐ°Ñ€Ð¾Ð»ÑŒ:</td>
+                    <td>
+                        <input className="input-select rounded box" name="password" placeholder="Enter password"
+                               required type="password" onChange={fetcher.passwordChangeHandle}/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <button className="box rounded redirect"
+                              onClick={fetcher.loginHandle}>Ð’Ð¾Ð¹Ñ‚Ð¸</button>
+                    </td>
+                    <td>
+                        <button className="box rounded redirect"
+                              onClick={fetcher.registerHandle}>Ð—Ð°Ñ€ÐµÐ³Ð¸ÑÑ‚Ñ€Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒÑÑ</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+        </div>
+    );
+}
+
+export default LoginApp;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\login\LoginAppFetcher.js
+Размер: 1838 байт
+Расширение: .js
+Содержимое:
+import LoginApp from "./LoginApp";
+import {useState} from "react";
+import {Navigate, useLoaderData} from 'react-router-dom';
+import {useDispatch} from "react-redux";
+import {autoFetch} from "../Util";
+import {setLogin} from "../redux/login";
+import {setPassword} from "../redux/password";
+
+function LoginAppFetcher(props) {
+    let [redirect, redirectTo] = useState();
+    const dispatch = useDispatch();
+
+    const loaded = useLoaderData();
+    if(loaded.success) redirect = '/main';
+
+    const [login, setNewLogin] = useState('');
+    const [password, setNewPassword] = useState('');
+
+    function loginChangeHandle(ev) {setNewLogin(ev.target.value)}
+    function passwordChangeHandle(ev) {setNewPassword(ev.target.value)}
+
+    function loginHandle() {
+        if(!login || !password) return;
+        autoFetch('auth/login', 'POST', {login, password})
+            .then(res => {
+                if(res.success) {
+                    dispatch(setLogin(login));
+                    dispatch(setPassword(password));
+                    redirectTo('/main');
+                }
+            });
+    }
+
+    function registerHandle() {
+        if(!login || !password) return;
+        autoFetch('auth/register', 'POST', {login, password})
+            .then(res => {
+                if(res.success) {
+                    dispatch(setLogin(login));
+                    dispatch(setPassword(password));
+                    redirectTo('/main');
+                }
+            });
+    }
+
+    if(redirect) return (<Navigate to={`.${redirect}`} relative/>);
+
+    return (<LoginApp fetcher={{loginChangeHandle, passwordChangeHandle, loginHandle, registerHandle}}/>);
+}
+
+export default LoginAppFetcher;
+
+export async function getLogin() {
+    return await autoFetch('auth', 'GET', undefined, true);
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\Graph.js
+Размер: 3370 байт
+Расширение: .js
+Содержимое:
+import {Expression, GraphingCalculator, elt} from "desmos-react";
+import {useCallback, useEffect, useState} from "react";
+
+function Graph({fetcher}) {
+    const [calculator, setCalculator] = useState({valid: false});
+    const calculatorRef = useCallback(calc => {
+        if (!calc) return;
+
+        calculator.boundingRect = elt(calc).getBoundingClientRect();
+        calculator.current = calc;
+        calculator.setBounds = (bounds) => calculator.current.setMathBounds({
+            left: -bounds,
+            right: bounds,
+            bottom: -bounds,
+            top: bounds
+        });
+        calculator.valid = true;
+        setCalculator(calculator);
+    }, [calculator]);
+
+    useEffect(() => {
+        if (calculator.valid && fetcher.r != null) {
+            if (fetcher.r >= 0) calculator.setBounds(fetcher.r + 2);
+            else calculator.setBounds(2);
+        } else if (!fetcher.r) calculator.setBounds(2);
+    }, [calculator, fetcher.r]);
+
+    function handleClick(ev) {
+        if (!calculator.valid || calculator.wasMoved) return;
+        const graph = calculator.current;
+
+        const rect = calculator.boundingRect;
+        let x = ev.clientX - rect.left;
+        let y = ev.clientY - rect.top + window.pageYOffset;
+        let mathCoordinates = graph.pixelsToMath({x, y});
+
+        ev.x = mathCoordinates.x.toFixed(2);
+        ev.y = mathCoordinates.y.toFixed(2);
+
+        fetcher.handleGraphClick(ev);
+    }
+
+    return (
+        <GraphingCalculator
+            attributes={{
+                className: "calculator", onClick: handleClick,
+                onMouseMove: ev => calculator.wasMoved = true, onMouseDown: ev => calculator.wasMoved = false
+            }}
+            ref={calculatorRef}
+            keypad={false}
+            expressions={false}
+            zoomFit={false}
+            settingsMenu={false}
+            invertedColors={true}
+            xAxisLabel={'x'}
+            yAxisLabel={'y'}
+            xAxisStep={1}
+            yAxisStep={1}
+            xAxisArrowMode={"POSITIVE"}
+            yAxisArrowMode={"POSITIVE"}
+        >
+            <Figure r={fetcher.r}/>
+            <Points points={fetcher.results} r={fetcher.r}/>
+        </GraphingCalculator>
+    );
+}
+
+function Points({points, r}) {
+    const colorHit = '#c200c2';
+    const colorMiss = '#00c9c2';
+    const colorHitInactive = '#d292d2';
+    const colorMissInactive = '#82c4c3';
+    const colorPicker = {
+        true: {
+            true: colorHit,
+            false: colorMiss
+        },
+        false: {
+            true: colorHitInactive,
+            false: colorMissInactive
+        }
+    }
+
+    const rendered = points.map((point, i) =>
+        <Expression key={i} id={i} latex={`(${point.x}, ${point.y})`}
+                    color={colorPicker[point.r === r][point.result]} lines={false}/>
+    );
+
+    return (<>{rendered}</>);
+}
+
+
+function Figure({r}) {
+    const color = '#ff7000';
+
+    return (<>
+        <Expression id={'g1'} latex={`0<=y<=(${r}/2) \\{-${r}<=x<=0\\}`} color={color} lines={false}/>
+        <Expression id={'g3'} latex={`x^2+y^2<=(${r}^2/4) \\{x<=0\\} \\{y<=0\\}`} color={color} lines={false}/>
+        <Expression id={'g2'} latex={`2*x-${r}<=y<=0 \\{x>=0\\}`} color={color} lines={false}/>
+
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\MainApp.js
+Размер: 1531 байт
+Расширение: .js
+Содержимое:
+import UserInput from "./UserInput";
+import ResultTable from "./ResultTable";
+import Graph from "./Graph";
+
+function MainApp({fetcher, mode}) {
+    let blocksPerRow = [3, 2];
+    if (mode.isTablet) blocksPerRow = [2, 1, 2]
+    if (mode.isMobile) blocksPerRow = [1, 1, 1, 1, 1];
+
+    const blocks = [
+        <div className="container">
+            <UserInput fetcher={fetcher}/>
+        </div>,
+
+        <div className="container rounded" id="graph-container">
+            <Graph fetcher={fetcher}/>
+        </div>,
+
+        <div className="container">
+            <ResultTable results={fetcher.results}/>
+        </div>,
+
+        <div className="container">
+            <p>Logged as:</p>
+            <p>{fetcher.login}</p>
+        </div>,
+
+        <button className="box rounded redirect" onClick={fetcher.handleLogout}>Ð’Ñ‹Ð¹Ñ‚Ð¸</button>
+    ];
+
+    let sorted = [];
+    let blockIndex = 0;
+    for (let raw of blocksPerRow) {
+        let adder = [];
+        for (let j = 0; j < raw; j++) {
+            adder.push(blocks[blockIndex++]);
+        }
+        sorted.push(adder);
+    }
+
+    return (<div id="main-table">
+        {sorted.map((row, i) =>
+            <div key={i}  className="row-like">
+                {row.map((elem, j) =>
+                    <div key={j} colSpan={j === row.length-1? 5 : 1}  className="cell-like">
+                        {elem}
+                    </div>
+                )}
+            </div>
+        )}
+    </div>);
+}
+
+export default MainApp;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\MainAppFetcher.js
+Размер: 2727 байт
+Расширение: .js
+Содержимое:
+import {useState} from "react";
+import {Navigate, useLoaderData} from "react-router-dom";
+import {autoFetch} from "../Util";
+import MainAppModed from "./MainAppModed";
+import {useDispatch} from "react-redux";
+import {resetLogin} from "../redux/login";
+import {resetPassword} from "../redux/password";
+import store from "../store";
+
+function MainAppFetcher(props) {
+    let [redirect, redirectTo] = useState();
+    const dispatch = useDispatch();
+
+    const loaded = useLoaderData();
+    if(!loaded.success && !loaded.login) redirect = '/';
+    //const login = loaded.login;
+    const login = store.getState().login.value;
+
+    const [x, setX] = useState();
+    const [y, setY] = useState();
+    const [r, setR] = useState();
+    const [results, setResults] = useState(loaded.data);
+
+    function handleX(ev) {
+        setX(+ev.target.value);
+    }
+
+    function handleY(ev) {
+        setY(+ev.target.value);
+    }
+
+    function handleR(ev) {
+        setR(+ev.target.value);
+    }
+
+    function handleSubmit() {
+        checkHit(x, y);
+    }
+
+    function handleGraphClick(ev) {
+        checkHit(+ev.x, +ev.y);
+    }
+
+    function handleClear() {
+        autoFetch('clear')
+            .then(res => {
+                if (res.success) setResults([]);
+                else if (!res.login) redirectTo('/');
+            });
+    }
+
+    function handleLogout() {
+        autoFetch('auth/logout', 'POST')
+            .then(res => {
+                if (!res.login) {
+                    dispatch(resetLogin);
+                    dispatch(resetPassword);
+                    redirectTo('/');
+                }
+            });
+    }
+
+    async function checkHit(x, y) {
+        if (x === undefined) return alert("X value is undefined");
+        if (y === undefined || Number.isNaN(y)) return alert("Y value is undefined or incorrect");
+        if (r === undefined) return alert("R value is undefined");
+        if (!(x >= -4 && x <= 4)) return alert("X value is not in [-4; 4]");
+        if (!(y >= -3 && y <= 5)) return alert("Y value is not in [-3; 5]");
+        if (!(r > 0 && r <= 4)) return alert("R value is not in (0; 4]");
+
+        let res = await autoFetch('check',
+            'POST', {x, y, r});
+
+        if (res.success) setResults([...results, res.data]);
+        else if (!res.login) redirectTo('/');
+    }
+
+    if (redirect) return (<Navigate to={`..${redirect}`} relative/>);
+    return (<MainAppModed fetcher={{r, results, handleX, handleY, handleR, handleSubmit, handleClear, handleGraphClick, handleLogout, login}}/>);
+
+}
+
+export async function LoadResults() {
+    return await autoFetch('results');
+}
+
+export default MainAppFetcher;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\MainAppModed.js
+Размер: 829 байт
+Расширение: .js
+Содержимое:
+import {useState, useEffect} from 'react';
+import MainApp from "./MainApp";
+
+function getWindowDimensions() {
+    const {innerWidth: width, innerHeight: height} = window;
+    return {
+        width,
+        height
+    };
+}
+
+export default function MainAppModed({fetcher}) {
+    const [windowDimensions, setWindowDimensions] = useState(getWindowDimensions());
+
+    useEffect(() => {
+        function handleResize() {
+            setWindowDimensions(getWindowDimensions());
+        }
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isTablet = windowDimensions.width < 1252;
+    const isMobile = windowDimensions.width < 885;
+
+    return <MainApp mode={{isMobile, isTablet}} fetcher={fetcher}/>;
+}
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\ResultTable.js
+Размер: 1206 байт
+Расширение: .js
+Содержимое:
+import {useEffect} from "react";
+
+function ResultTable({results}) {
+
+    useEffect(() => {
+        const table = document.getElementById("result-table");
+        table.scrollTo(0, table.scrollHeight);
+    }, [results]);
+
+    const rendered = results.map((res, i) =>
+        <tr key={i} className={i===results.length-1 ? res.result ? 'last-row-hit' : 'last-row-miss' : ''}>
+            <td>{res.x}</td>
+            <td>{res.y}</td>
+            <td>{res.r}</td>
+            <td>{res.result ? "ÐŸÐ¾Ð¿Ð°Ð»!" : "ÐŸÑ€Ð¾Ð¼Ð°Ð·Ð°Ð» :("}</td>
+            <td>{new Date(res.dateTime).toLocaleTimeString()}</td>
+            <td>{`${res.execTime} mks`}</td>
+        </tr>
+    );
+
+    return (
+        <table id="result-table">
+            <thead>
+            <tr id="first-row" className="last-row-hit">
+                <td>X</td>
+                <td>Y</td>
+                <td>R</td>
+                <td>Ð ÐµÐ·ÑƒÐ»ÑŒÑ‚Ð°Ñ‚</td>
+                <td>Ð’Ñ€ÐµÐ¼Ñ</td>
+                <td>Ð’Ñ€ÐµÐ¼Ñ Ð²Ñ‹Ñ‡Ð¸ÑÐ»ÐµÐ½Ð¸Ñ</td>
+            </tr>
+            </thead>
+            <tbody>
+            {rendered}
+            </tbody>
+        </table>
+    );
+}
+
+export default ResultTable;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\UserInput.js
+Размер: 2703 байт
+Расширение: .js
+Содержимое:
+import {useState} from "react";
+import Input from 'react-toolbox/lib/input';
+import {Button} from 'react-toolbox/lib/button';
+
+
+function UserInput({fetcher}) {
+
+    return (
+        <table id="input-table">
+            <tbody>
+            <tr>
+                <td colSpan="3" className="input-cell-l">Ð’Ð²ÐµÐ´Ð¸ Ð·Ð½Ð°Ñ‡ÐµÐ½Ð¸Ñ:</td>
+            </tr>
+            <tr>
+                <td className="input-cell-l">X:</td>
+                <td id="x-cell">
+                    <ButtonPanel id="x-table" from={-4} to={4} onChange={fetcher.handleX}/>
+                </td>
+            </tr>
+            <tr>
+                <td className="input-cell-l">Y:</td>
+                <td id="y-cell">
+                    <Input className="input-select rounded box" id="y-select" name="y-select" placeholder="Enter value"
+                           required type="text" maxLength={10} onChange={fetcher.handleY}/>
+                </td>
+            </tr>
+            <tr>
+                <td className="input-cell-l">R:</td>
+                <td id="r-cell">
+                    <ButtonPanel id="r-table" from={-4} to={4} onChange={fetcher.handleR}/>
+                </td>
+            </tr>
+            <tr>
+                <td colSpan="3">
+                    <button id="submit-button" className="rounded" onClick={fetcher.handleSubmit}>Ð’Ñ‹Ñ‡Ð¸ÑÐ»Ð¸Ñ‚ÑŒ</button>
+                </td>
+            </tr>
+            <tr>
+                <td colSpan="3">
+                    <button id="clear-button" className="rounded" onClick={fetcher.handleClear}>ÐžÑ‡Ð¸ÑÑ‚Ð¸Ñ‚ÑŒ</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    );
+}
+
+function ButtonPanel(props) {
+
+    const [selectedKey, setSelectedKey] = useState();
+    const onChange = props.onChange;
+
+    const buttons = [];
+    for (let i = props.from; i <= props.to; i++) {
+        buttons.push(
+            <td className="button" key={i}>
+                <Button className={`small-button rounded ${selectedKey === i ? "selected" : ""}`}
+                        key={i} value={i} onClick={() => {
+                    setSelectedKey(i);
+                    onChange({target: {value: i}});
+                }}>
+                    {i}
+                </Button>
+            </td>
+        );
+    }
+
+    const rows = [];
+    for (let i = 0; i < buttons.length; i += 3) {
+        rows.push(
+            <tr key={i}>
+                {buttons.slice(i, Math.min(i + 3, buttons.length))}
+            </tr>
+        );
+    }
+
+    return (
+        <table id={props.id}>
+            <tbody>{rows}</tbody>
+        </table>
+    );
+}
+
+export default UserInput;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\redux\login.js
+Размер: 471 байт
+Расширение: .js
+Содержимое:
+import { createSlice } from '@reduxjs/toolkit';
+
+export const loginReducer = createSlice({
+    name: 'login',
+    initialState: {
+        value: null,
+    },
+    reducers: {
+        setLogin: (state, action) => {
+            state.value = action.payload;
+        },
+        resetLogin: (state) => {
+            state.value = null;
+        },
+    },
+})
+
+export const {setLogin, resetLogin} = loginReducer.actions;
+
+export default loginReducer.reducer;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\redux\password.js
+Размер: 559 байт
+Расширение: .js
+Содержимое:
+import { createSlice } from '@reduxjs/toolkit';
+
+export const passwordReducer = createSlice({
+    name: 'password',
+    initialState: {
+        value: null,
+    },
+    reducers: {
+        setPassword: (state, action) => {
+            state.value = action.payload;
+        },
+        resetPassword: (state) => {
+            state.value = null;
+        },
+    },
+})
+
+export const selectPassword = state => state.password.value;
+
+export const {setPassword, resetPassword} = passwordReducer.actions;
+
+export default passwordReducer.reducer;
+---

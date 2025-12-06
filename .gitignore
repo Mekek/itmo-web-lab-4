@@ -1,0 +1,9 @@
+# === Основное ===
+target/
+node_modules/
+
+# === Дополнительно для чистооты ===
+.DS_Store
+Thumbs.db
+*.log
+.env

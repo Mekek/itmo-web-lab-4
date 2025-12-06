@@ -1,0 +1,202 @@
+* {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    outline: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: sans-serif;
+    color: #c9d1d9;
+    display: block;
+    background-color: #0d1117;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background-color: #21262d;
+    border-radius: 0.2em;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #3a424f;
+    border-radius: 0.2em;
+}
+
+.container {
+    background-color: #161b22;
+    border: 1px solid darkgray;
+    padding: 10px 20px;
+    margin: 5px 7px;
+    height: fit-content;
+    width: fit-content;
+    border-radius: 0.6em;
+}
+
+#main-table {
+    vertical-align: top;
+    display: table;
+    height: fit-content;
+    width: fit-content;
+    padding: 0;
+    margin: 0;
+}
+
+#main-table .row-like .cell-like {
+    vertical-align: top;
+    display: table-cell;
+}
+
+button:hover, input:hover, #y-select:focus {
+    background-color: #30363d;
+    border-color: #8b949e;
+}
+
+button, input, .box, #result-table tr td {
+    color: #c9d1d9;
+    background-color: #21262d;
+    padding: 2px;
+    border: 2px solid rgba(240, 246, 252, 0.1);
+}
+
+button {
+    cursor: pointer;
+}
+
+button:active {
+    background-color: #6b6e39;
+}
+
+button.selected {
+    background-color: #6b6e39 !important;
+    border-color: #8b949e !important;
+}
+
+.rounded {
+    border-radius: 0.4em;
+}
+
+#header {
+    font-family: cursive;
+    color: #d5dfe8;
+    font-size: 16px;
+}
+
+#graph, .calculator {
+    width: 400px;
+    height: 400px;
+    padding: 0;
+    margin: 10px;
+}
+
+#graph-container {
+    padding: 0;
+    border-radius: 0.2em;
+}
+
+#y-select {
+    margin: 0 2px;
+    width: 79px;
+    height: 30px;
+}
+
+#result-table {
+    display: block;
+    width: fit-content;
+    max-height: 400px;
+    overflow-y: scroll;
+}
+
+#result-table tr td {
+    margin: 10px;
+    padding: 0 10px;
+    width: fit-content;
+    border-radius: 0.2em;
+}
+
+#result-table #first-row td {
+    background-color: #3a424f;
+}
+
+.red-border {
+    border: 2px solid #8c2121;
+    border-radius: 0.4em;
+}
+
+#result-table .last-row-hit td {
+    background-color: #43735d;
+}
+
+#result-table .last-row-miss td {
+    background-color: #653b3b;
+}
+
+.redirect {
+    font-size: 16px;
+    padding: 2px 7px;
+    margin: 5px 0;
+}
+
+/* Стили для панелей кнопок */
+#x-table, #r-table {
+    margin: 5px 0;
+}
+
+#x-table button, #r-table button {
+    width: 35px;
+    height: 35px;
+    margin: 2px;
+    font-weight: bold;
+}
+
+#x-table button:hover, #r-table button:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+}
+
+#x-table button.selected, #r-table button.selected {
+    background-color: #6b6e39;
+    border-color: #8b949e;
+}
+
+/* Стили для полей ввода */
+.input-select {
+    width: 100px;
+    height: 35px;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.input-select:focus {
+    border-color: #8b949e;
+    background-color: #30363d;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 838px) {
+    .calculator, #graph {
+        width: 300px;
+        height: 300px;
+    }
+
+    #x-table button, #r-table button {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+
+    .container {
+        padding: 8px 12px;
+        margin: 3px 5px;
+    }
+}
+
+@media (max-width: 1168px) and (min-width: 839px) {
+    .calculator, #graph {
+        width: 350px;
+        height: 350px;
+    }
+}
