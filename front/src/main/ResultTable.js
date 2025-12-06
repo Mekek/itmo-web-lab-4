@@ -7,8 +7,9 @@ function ResultTable({results}) {
         table.scrollTo(0, table.scrollHeight);
     }, [results]);
 
-    const rendered = results.map((res, i) =>
-        <tr key={i} className={i===results.length-1 ? res.result ? 'last-row-hit' : 'last-row-miss' : ''}>
+
+    const rendered = results.slice().reverse().map((res, i) =>
+        <tr key={results.length - 1 - i} className={i===0 ? res.result ? 'last-row-hit' : 'last-row-miss' : ''}>
             <td>{res.x}</td>
             <td>{res.y}</td>
             <td>{res.r}</td>

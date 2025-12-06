@@ -1,6 +1,52 @@
 import {useState} from "react";
 
 function UserInput({fetcher}) {
+    const [yValue, setYValue] = useState('');
+
+    const handleYChange = (e) => {
+        const rawValue = e.target.value;
+
+        // Разрешаем только цифры, точку и минус
+        let filtered = rawValue.replace(/[^0-9.-]/g, '');
+
+        // Удаляем лишние минусы (оставляем только первый, если он в начале)
+        const minusCount = (filtered.match(/-/g) || []).length;
+        if (minusCount > 1) {
+            // Оставляем только первый минус
+            filtered = filtered.replace(/-/g, '');
+            if (rawValue.includes('-')) {
+                filtered = '-' + filtered;
+            }
+        } else if (minusCount === 1 && !filtered.startsWith('-')) {
+            // Если минус не в начале, удаляем его
+            filtered = filtered.replace(/-/g, '');
+        }
+
+        // Удаляем лишние точки (оставляем только первую)
+        const dotCount = (filtered.match(/\./g) || []).length;
+        if (dotCount > 1) {
+            const parts = filtered.split('.');
+            filtered = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Проверяем, что после минуса нет точки
+        if (filtered.startsWith('-.')) {
+            filtered = '-0.' + filtered.slice(2);
+        }
+
+        // Проверяем, что строка не начинается с точки
+        if (filtered.startsWith('.')) {
+            filtered = '0.' + filtered.slice(1);
+        }
+
+        setYValue(filtered);
+
+        // Преобразуем в число для обработки
+        const num = filtered === '' || filtered === '-' || filtered === '.' ?
+            undefined :
+            parseFloat(filtered);
+        fetcher.handleY(num);
+    };
 
     return (
         <table id="input-table">
@@ -25,7 +71,8 @@ function UserInput({fetcher}) {
                         required
                         type="text"
                         maxLength={10}
-                        onChange={(e) => fetcher.handleY(e.target.value)}
+                        value={yValue}
+                        onChange={handleYChange}
                     />
                 </td>
             </tr>
@@ -51,7 +98,6 @@ function UserInput({fetcher}) {
 }
 
 function ButtonPanel(props) {
-
     const [selectedKey, setSelectedKey] = useState(null);
     const onChange = props.onChange;
 
