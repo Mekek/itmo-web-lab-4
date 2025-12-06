@@ -1,18 +1,31 @@
-import {useState} from "react";
-import {Navigate, useLoaderData} from "react-router-dom";
-import {autoFetch} from "../Util";
+import { useState, useEffect } from "react";
+import { Navigate, useLoaderData } from "react-router-dom";
+import { autoFetch } from "../Util";
 import MainAppModed from "./MainAppModed";
-import {useDispatch} from "react-redux";
-import {resetLogin} from "../redux/login";
-import {resetPassword} from "../redux/password";
+import { useDispatch } from "react-redux";
+import { resetLogin } from "../redux/login";
+import { resetPassword } from "../redux/password";
 import store from "../store";
+import { useNotification } from "../NotificationContext";
 
 function MainAppFetcher(props) {
     let [redirect, redirectTo] = useState();
     const dispatch = useDispatch();
+    const { showNotification } = useNotification();
 
     const loaded = useLoaderData();
-    if(!loaded.success && !loaded.login) redirect = '/';
+
+    // Используем useEffect для обработки редиректа один раз
+    useEffect(() => {
+        if (!loaded.success && !loaded.login) {
+            redirectTo('/');
+            // Показываем уведомление только если это не первый заход
+            if (loaded.shouldShowNotification) {
+                showNotification('You are not logged in. Please log in first.');
+            }
+        }
+    }, [loaded, showNotification]);
+
     const login = store.getState().login.value;
 
     const [x, setX] = useState();
@@ -44,44 +57,64 @@ function MainAppFetcher(props) {
         autoFetch('clear')
             .then(res => {
                 if (res.success) setResults([]);
-                else if (!res.login) redirectTo('/');
+                else if (!res.login && res.shouldShowNotification) {
+                    showNotification(res.error || 'Failed to clear results');
+                }
             });
     }
 
     function handleLogout() {
         autoFetch('auth/logout', 'POST')
             .then(res => {
-                if (!res.login) {
+                if (res.success) {
                     dispatch(resetLogin());
                     dispatch(resetPassword());
                     redirectTo('/');
+                } else if (res.shouldShowNotification) {
+                    showNotification(res.error || 'Logout failed');
                 }
             });
     }
 
     async function checkHit(x, y) {
-        if (x === undefined) return alert("X value is undefined");
-        if (y === undefined || Number.isNaN(y)) return alert("Y value is undefined or incorrect");
-        if (r === undefined) return alert("R value is undefined");
+        if (x === undefined) {
+            showNotification("X value is undefined");
+            return;
+        }
+        if (y === undefined || Number.isNaN(y)) {
+            showNotification("Y value is undefined or incorrect");
+            return;
+        }
+        if (r === undefined) {
+            showNotification("R value is undefined");
+            return;
+        }
 
-        // Ваш вариант: X от -5 до 3
-        if (!(x >= -5 && x <= 3)) return alert("X value is not in [-5; 3]");
+        if (!(x >= -5 && x <= 3)) {
+            showNotification("X value is not in [-5; 3]");
+            return;
+        }
 
-        // Y от -3 до 5 (без изменений)
-        if (!(y >= -3 && y <= 5)) return alert("Y value is not in [-3; 5]");
+        if (!(y >= -3 && y <= 5)) {
+            showNotification("Y value is not in [-3; 5]");
+            return;
+        }
 
-        // R должен быть положительным и от 0 до 3, но в интерфейсе есть кнопки -5..3
-        // Валидация: радиус должен быть > 0 и ≤ 3
-        if (!(r > 0 && r <= 3)) return alert("R value is not in (0; 3]");
+        if (!(r > 0 && r <= 3)) {
+            showNotification("R value is not in (0; 3]");
+            return;
+        }
 
-        let res = await autoFetch('check', 'POST', {x, y, r});
+        let res = await autoFetch('check', 'POST', { x, y, r });
 
         if (res.success) setResults([...results, res.data]);
-        else if (!res.login) redirectTo('/');
+        else if (!res.login && res.shouldShowNotification) {
+            showNotification(res.error || 'Failed to check hit');
+        }
     }
 
-    if (redirect) return (<Navigate to={`..${redirect}`} relative/>);
-    return (<MainAppModed fetcher={{r, results, handleX, handleY, handleR, handleSubmit, handleClear, handleGraphClick, handleLogout, login}}/>);
+    if (redirect) return (<Navigate to={`..${redirect}`} relative />);
+    return (<MainAppModed fetcher={{ r, results, handleX, handleY, handleR, handleSubmit, handleClear, handleGraphClick, handleLogout, login }} />);
 }
 
 export async function LoadResults() {
