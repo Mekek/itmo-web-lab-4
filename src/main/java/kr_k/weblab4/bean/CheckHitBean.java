@@ -35,16 +35,16 @@ public class CheckHitBean {
     }
 
     private static boolean checkHit(double x, double y, double r) {
-        if (!(x >= -4 && x <= 4) || !(y >= -3 && y <= 5) || !(r > 0 && r <= 4)) {
+        if (!(x >= -5 && x <= 3) || !(y >= -3 && y <= 5) || !(r > 0 && r <= 3)) {
             return false;
         }
 
         if (x > 0) {
-            if (y > 0) return false; // up right
-            else return 2*x - r <= y; // down right
+            if (y < 0) return false; // down right
+            else return  x * x + y * y <= (r * r / 4); // up right
         } else {
-            if (y >= 0) return x >= -r && y <= (r / 2); // up left
-            else return x * x + y * y <= (r * r / 4); // down left
+            if (y >= 0) return x + r >= y; // up left
+            else return x >= -r && y >= -r; // down left
         }
     }
 

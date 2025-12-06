@@ -94,10 +94,29 @@ function Figure({r}) {
     const color = '#ff7000';
 
     return (<>
-        <Expression id={'g1'} latex={`0<=y<=(${r}/2) \\{-${r}<=x<=0\\}`} color={color} lines={false}/>
-        <Expression id={'g3'} latex={`x^2+y^2<=(${r}^2/4) \\{x<=0\\} \\{y<=0\\}`} color={color} lines={false}/>
-        <Expression id={'g2'} latex={`2*x-${r}<=y<=0 \\{x>=0\\}`} color={color} lines={false}/>
+        {/* 1. Верхний правый квадрант: x² + y² <= (r²/4), где x > 0 и y >= 0 */}
+        <Expression
+            id={'g1'}
+            latex={`x^2+y^2<=(${r}^2/4) \\{x>0\\} \\{y>=0\\}`}
+            color={color}
+            lines={false}
+        />
 
+        {/* 2. Верхний левый квадрант: x + r >= y, где x <= 0 и y >= 0 */}
+        <Expression
+            id={'g2'}
+            latex={`x+${r}>=y \\{x<=0\\} \\{y>=0\\}`}
+            color={color}
+            lines={false}
+        />
+
+        {/* 3. Нижний левый квадрант: x >= -r && y >= -r, где x <= 0 и y < 0 */}
+        <Expression
+            id={'g3'}
+            latex={`x>=-${r} \\{y>=-${r}\\} \\{x<=0\\} \\{y<0\\}`}
+            color={color}
+            lines={false}
+        />
     </>);
 }
 

@@ -13,13 +13,12 @@ function MainAppFetcher(props) {
 
     const loaded = useLoaderData();
     if(!loaded.success && !loaded.login) redirect = '/';
-    //const login = loaded.login;
     const login = store.getState().login.value;
 
     const [x, setX] = useState();
     const [y, setY] = useState();
     const [r, setR] = useState();
-    const [results, setResults] = useState(loaded.data);
+    const [results, setResults] = useState(loaded.data || []);
 
     function handleX(value) {
         setX(+value);
@@ -64,12 +63,18 @@ function MainAppFetcher(props) {
         if (x === undefined) return alert("X value is undefined");
         if (y === undefined || Number.isNaN(y)) return alert("Y value is undefined or incorrect");
         if (r === undefined) return alert("R value is undefined");
-        if (!(x >= -4 && x <= 4)) return alert("X value is not in [-4; 4]");
-        if (!(y >= -3 && y <= 5)) return alert("Y value is not in [-3; 5]");
-        if (!(r > 0 && r <= 4)) return alert("R value is not in (0; 4]");
 
-        let res = await autoFetch('check',
-            'POST', {x, y, r});
+        // Ваш вариант: X от -5 до 3
+        if (!(x >= -5 && x <= 3)) return alert("X value is not in [-5; 3]");
+
+        // Y от -3 до 5 (без изменений)
+        if (!(y >= -3 && y <= 5)) return alert("Y value is not in [-3; 5]");
+
+        // R должен быть положительным и от 0 до 3, но в интерфейсе есть кнопки -5..3
+        // Валидация: радиус должен быть > 0 и ≤ 3
+        if (!(r > 0 && r <= 3)) return alert("R value is not in (0; 3]");
+
+        let res = await autoFetch('check', 'POST', {x, y, r});
 
         if (res.success) setResults([...results, res.data]);
         else if (!res.login) redirectTo('/');
@@ -77,7 +82,6 @@ function MainAppFetcher(props) {
 
     if (redirect) return (<Navigate to={`..${redirect}`} relative/>);
     return (<MainAppModed fetcher={{r, results, handleX, handleY, handleR, handleSubmit, handleClear, handleGraphClick, handleLogout, login}}/>);
-
 }
 
 export async function LoadResults() {

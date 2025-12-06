@@ -21,8 +21,12 @@ export default function MainAppModed({fetcher}) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const isTablet = windowDimensions.width < 1252;
-    const isMobile = windowDimensions.width < 885;
+    // Ваш вариант:
+    // Десктоп: ≥1169px
+    // Планшет: 839-1169px
+    // Мобильный: <839px
+    const isTablet = windowDimensions.width < 1169 && windowDimensions.width >= 839;
+    const isMobile = windowDimensions.width < 839;
 
     return <MainApp mode={{isMobile, isTablet}} fetcher={fetcher}/>;
 }

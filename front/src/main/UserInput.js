@@ -11,7 +11,7 @@ function UserInput({fetcher}) {
             <tr>
                 <td className="input-cell-l">X:</td>
                 <td id="x-cell">
-                    <ButtonPanel id="x-table" from={-4} to={4} onChange={fetcher.handleX}/>
+                    <ButtonPanel id="x-table" from={-5} to={3} onChange={fetcher.handleX}/>
                 </td>
             </tr>
             <tr>
@@ -32,7 +32,7 @@ function UserInput({fetcher}) {
             <tr>
                 <td className="input-cell-l">R:</td>
                 <td id="r-cell">
-                    <ButtonPanel id="r-table" from={-4} to={4} onChange={fetcher.handleR}/>
+                    <ButtonPanel id="r-table" from={-5} to={3} onChange={fetcher.handleR}/>
                 </td>
             </tr>
             <tr>
