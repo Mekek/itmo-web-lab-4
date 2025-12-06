@@ -215,7 +215,7 @@ public class AuthResultBean {
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\bean\CheckHitBean.java
-Размер: 2633 байт
+Размер: 2627 байт
 Расширение: .java
 Содержимое:
 package kr_k.weblab4.bean;
@@ -255,16 +255,16 @@ public class CheckHitBean {
     }
 
     private static boolean checkHit(double x, double y, double r) {
-        if (!(x >= -4 && x <= 4) || !(y >= -3 && y <= 5) || !(r > 0 && r <= 4)) {
+        if (!(x >= -5 && x <= 3) || !(y >= -3 && y <= 5) || !(r > 0 && r <= 3)) {
             return false;
         }
 
         if (x > 0) {
-            if (y > 0) return false; // up right
-            else return 2*x - r <= y; // down right
+            if (y < 0) return false; // down right
+            else return  x * x + y * y <= (r * r / 4); // up right
         } else {
-            if (y >= 0) return x >= -r && y <= (r / 2); // up left
-            else return x * x + y * y <= (r * r / 4); // down left
+            if (y >= 0) return x + r >= y; // up left
+            else return x >= -r && y >= -r; // down left
         }
     }
 
@@ -507,7 +507,7 @@ public class ProcessingExceptionMapper extends Throwable implements ExceptionMap
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\jpa\ResultEntity.java
-Размер: 1981 байт
+Размер: 2005 байт
 Расширение: .java
 Содержимое:
 package kr_k.weblab4.jpa;
@@ -519,7 +519,7 @@ import jakarta.persistence.*;
 import java.time.ZonedDateTime;
 
 @Entity
-@Table
+@Table(name = "result_entity")
 public class ResultEntity {
     @Id
     @GeneratedValue
@@ -612,7 +612,7 @@ public class ResultEntity {
     public void setOwner(UserEntity owner) {
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\jpa\UserEntity.java
-Размер: 1053 байт
+Размер: 1075 байт
 Расширение: .java
 Содержимое:
 package kr_k.weblab4.jpa;
@@ -622,7 +622,7 @@ import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
-@Table
+@Table(name = "user_entity")
 public class UserEntity {
     @Id
     private String login;
@@ -813,7 +813,7 @@ public class CheckHitResourse {
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\java\kr_k\weblab4\rest\CORSFilter.java
-Размер: 1258 байт
+Размер: 1104 байт
 Расширение: .java
 Содержимое:
 package kr_k.weblab4.rest;
@@ -832,12 +832,7 @@ public class CORSFilter implements ContainerResponseFilter {
     public void filter(final ContainerRequestContext requestContext,
                        final ContainerResponseContext cres) throws IOException {
         String origin = requestContext.getHeaderString("Origin");
-        if(origin == null ||
-                origin.startsWith("http://localhost:3000") ||
-                origin.startsWith("http://localhost:19123")) {
-            origin = "http://localhost:3000";
-        }
-
+        if(origin == null) origin = "http://localhost:19123";
 
         cres.getHeaders().add("Access-Control-Allow-Origin", origin);
         cres.getHeaders().add("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, location-origin");
@@ -863,7 +858,7 @@ public class CORSFilter implements ContainerResponseFilter {
 </beans>
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\src\main\resources\META-INF\persistence.xml
-Размер: 867 байт
+Размер: 1105 байт
 Расширение: .xml
 Содержимое:
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -881,7 +876,9 @@ public class CORSFilter implements ContainerResponseFilter {
 
     <properties>
       <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
-      <property name="hibernate.hbm2ddl.auto" value="update"/>
+      <property name="hibernate.hbm2ddl.auto" value="update"/> <!-- Ð˜Ð·Ð¼ÐµÐ½Ð¸ Ð½Ð° create -->
+      <property name="hibernate.show_sql" value="true"/> <!-- Ð”Ð¾Ð±Ð°Ð²ÑŒ Ð´Ð»Ñ Ð¾Ñ‚Ð»Ð°Ð´ÐºÐ¸ -->
+      <property name="hibernate.format_sql" value="true"/> <!-- Ð”Ð¾Ð±Ð°Ð²ÑŒ Ð´Ð»Ñ Ð¾Ñ‚Ð»Ð°Ð´ÐºÐ¸ -->
     </properties>
 
   </persistence-unit>
@@ -916,7 +913,7 @@ public class CORSFilter implements ContainerResponseFilter {
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\package-lock.json
-Размер: 731966 байт
+Размер: 727963 байт
 Расширение: .json
 Содержимое:
 {
@@ -939,8 +936,7 @@ public class CORSFilter implements ContainerResponseFilter {
         "react-redux": "^9.1.0",
         "react-router-dom": "^6.21.1",
         "react-scripts": "^5.0.1",
-        "react-toolbox": "^2.0.0-beta.13",
-        "styled-components": "^6.1.8",
+        "styled-components": "^6.1.19",
         "web-vitals": "^2.1.4"
       },
       "devDependencies": {
@@ -1019,10 +1015,11 @@ public class CORSFilter implements ContainerResponseFilter {
         "@babel/traverse": "^7.23.3",
         "@babel/types": "^7.23.3",
         "convert-source-map": "^2.0.0",
+        "debug": "^4.1.0",
 ... [файл слишком большой, показаны первые 100 строк]
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\package.json
-Размер: 1197 байт
+Размер: 1158 байт
 Расширение: .json
 Содержимое:
 {
@@ -1040,8 +1037,7 @@ public class CORSFilter implements ContainerResponseFilter {
     "react-redux": "^9.1.0",
     "react-router-dom": "^6.21.1",
     "react-scripts": "^5.0.1",
-    "react-toolbox": "^2.0.0-beta.13",
-    "styled-components": "^6.1.8",
+    "styled-components": "^6.1.19",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -1113,7 +1109,7 @@ public class CORSFilter implements ContainerResponseFilter {
 Папка: C:\Code\web\lab4\itmo-web-lab-4\front\src\main
 Папка: C:\Code\web\lab4\itmo-web-lab-4\front\src\redux
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\Header.js
-Размер: 376 байт
+Размер: 378 байт
 Расширение: .js
 Содержимое:
 import {Outlet} from "react-router-dom";
@@ -1122,8 +1118,8 @@ function Header() {
     return (<>
         <div className="container" id="header">
             <p>Ð›Ð°Ð±Ð¾Ñ€Ð°Ñ‚Ð¾Ñ€Ð½Ð°Ñ Ñ€Ð°Ð±Ð¾Ñ‚Ð° #4</p>
-            <p>Ð’Ñ‹Ð¿Ð¾Ð»Ð½Ð¸Ð» ÐšÑ€Ð°ÐºÐ¾Ð² ÐšÐ¸Ñ€Ð¸Ð»Ð» P32131</p>
-            <p>Ð’Ð°Ñ€Ð¸Ð°Ð½Ñ‚ 2838</p>
+            <p>Ð’Ñ‹Ð¿Ð¾Ð»Ð½Ð¸Ð» ÐšÐ°Ð´Ð¸Ð»Ð¾Ð² ÐœÐ¸Ñ…Ð°Ð¸Ð» P3330</p>
+            <p>Ð’Ð°Ñ€Ð¸Ð°Ð½Ñ‚ 47643</p>
         </div>
         <Outlet/>
     </>);
@@ -1150,7 +1146,7 @@ code {
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\index.js
-Размер: 323 байт
+Размер: 480 байт
 Расширение: .js
 Содержимое:
 import React from 'react';
@@ -1158,13 +1154,20 @@ import ReactDOM from 'react-dom/client';
 import './main.css';
 import Routed from "./router";
 import store from "./store";
-import {Provider} from "react-redux";
+import { Provider } from "react-redux";
+import { NotificationProvider } from "./NotificationContext";
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<Provider store={store}><Routed/></Provider>);
+root.render(
+    <Provider store={store}>
+        <NotificationProvider>
+            <Routed />
+        </NotificationProvider>
+    </Provider>
+);
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main.css
-Размер: 2714 байт
+Размер: 3588 байт
 Расширение: .css
 Содержимое:
 * {
@@ -1181,7 +1184,6 @@ body {
     display: block;
     background-color: #0d1117;
 }
-
 
 ::-webkit-scrollbar {
     width: 8px;
@@ -1220,12 +1222,12 @@ body {
     display: table-cell;
 }
 
-button:hover, #y-select:focus {
+button:hover, input:hover, #y-select:focus {
     background-color: #30363d;
     border-color: #8b949e;
 }
 
-button, .box, #result-table tr td {
+button, input, .box, #result-table tr td {
     color: #c9d1d9;
     background-color: #21262d;
     padding: 2px;
@@ -1236,38 +1238,136 @@ button {
     cursor: pointer;
 }
 
-Button:hover, #y-select:focus {
-    background-color: #30363d;
-    border-color: #8b949e;
-}
-
-Button, .box, #result-table tr td {
-    color: #c9d1d9;
-    background-color: #21262d;
-    padding: 2px;
-    border: 2px solid rgba(240, 246, 252, 0.1);
-}
-
-Button {
-    cursor: pointer;
-}
-
-.small-button {
-    width: 25px;
-    height: 25px;
-    position: relative;
-}
-
 button:active {
     background-color: #6b6e39;
 }
 
-Button:active {
-    background-color: #6b6e39;
+button.selected {
+    background-color: #6b6e39 !important;
+    border-color: #8b949e !important;
 }
 
 .rounded {
+    border-radius: 0.4em;
+}
+
+#header {
+    font-family: cursive;
+    color: #d5dfe8;
+    font-size: 16px;
+}
+
+#graph, .calculator {
+    width: 400px;
+    height: 400px;
+    padding: 0;
+    margin: 10px;
+}
+
+#graph-container {
+    padding: 0;
+    border-radius: 0.2em;
+}
+
+#y-select {
 ... [файл слишком большой, показаны первые 100 строк]
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\Notification.js
+Размер: 1193 байт
+Расширение: .js
+Содержимое:
+import { useEffect, useState } from 'react';
+import styled from 'styled-components';
+
+const NotificationContainer = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: ${props => props.type === 'error' ? '#f44336' : '#4caf50'};
+  color: white;
+  padding: 15px 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease;
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+`;
+
+function Notification({ message, type = 'error', duration = 3000, onClose }) {
+    const [visible, setVisible] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setVisible(false);
+            setTimeout(() => onClose(), 300); // Wait for fade out
+        }, duration);
+
+        return () => clearTimeout(timer);
+    }, [duration, onClose]);
+
+    if (!visible) return null;
+
+    return (
+        <NotificationContainer type={type}>
+            {message}
+        </NotificationContainer>
+    );
+}
+
+export default Notification;
+---
+Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\NotificationContext.js
+Размер: 1205 байт
+Расширение: .js
+Содержимое:
+import { createContext, useState, useContext } from 'react';
+import Notification from './Notification';
+
+const NotificationContext = createContext();
+
+export function NotificationProvider({ children }) {
+    const [notification, setNotification] = useState(null);
+
+    const showNotification = (message, type = 'error', duration = 3000) => {
+        setNotification({ message, type, duration });
+    };
+
+    const hideNotification = () => {
+        setNotification(null);
+    };
+
+    return (
+        <NotificationContext.Provider value={{ showNotification, hideNotification }}>
+            {children}
+            {notification && (
+                <Notification
+                    message={notification.message}
+                    type={notification.type}
+                    duration={notification.duration}
+                    onClose={hideNotification}
+                />
+            )}
+        </NotificationContext.Provider>
+    );
+}
+
+export const useNotification = () => {
+    const context = useContext(NotificationContext);
+    if (!context) {
+        throw new Error('useNotification must be used within NotificationProvider');
+    }
+    return context;
+};
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\router.js
 Размер: 748 байт
@@ -1300,40 +1400,44 @@ export default function Routed(props) {
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\store.js
-Размер: 268 байт
+Размер: 335 байт
 Расширение: .js
 Содержимое:
 import loginReducer from "./redux/login";
 import passwordReducer from "./redux/password";
-import {configureStore} from "@reduxjs/toolkit";
+import { configureStore } from "@reduxjs/toolkit";
 
-export default configureStore({
+const store = configureStore({
     reducer: {
         login: loginReducer,
         password: passwordReducer
     },
 })
+
+export default store;
+export { store }; // For use in Util.js
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\Util.js
-Размер: 611 байт
+Размер: 722 байт
 Расширение: .js
 Содержимое:
 export async function autoFetch(url, method, body, disableAlert) {
-    let res = {success: false};
+    let res = { success: false };
     try {
-        let raw = await fetch('/WebLab4/api/' + url, {
+        let raw = await fetch('http://localhost:8080/WebLab4/api/' + url, {
             method: method ? method : 'GET',
-            headers: {'Content-Type': 'application/json;charset=utf-8'},
+            headers: { 'Content-Type': 'application/json;charset=utf-8' },
             credentials: 'include',
             body: body ? JSON.stringify(body) : undefined
         });
         res = await raw.json();
     } catch (e) {
-        res.error = e;
+        res.error = e.toString();
     }
 
     if (!res.success && !disableAlert) {
-        alert('Error: ' + res.error);
+        // Instead of alert, we'll handle notification in components
+        res.shouldShowNotification = true;
     }
     console.log(res);
     return res;
@@ -1387,57 +1491,69 @@ function LoginApp({fetcher}) {
 export default LoginApp;
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\login\LoginAppFetcher.js
-Размер: 1838 байт
+Размер: 2431 байт
 Расширение: .js
 Содержимое:
 import LoginApp from "./LoginApp";
-import {useState} from "react";
-import {Navigate, useLoaderData} from 'react-router-dom';
-import {useDispatch} from "react-redux";
-import {autoFetch} from "../Util";
-import {setLogin} from "../redux/login";
-import {setPassword} from "../redux/password";
+import { useState } from "react";
+import { Navigate, useLoaderData } from 'react-router-dom';
+import { useDispatch } from "react-redux";
+import { autoFetch } from "../Util";
+import { setLogin } from "../redux/login";
+import { setPassword } from "../redux/password";
+import { useNotification } from "../NotificationContext";
 
 function LoginAppFetcher(props) {
     let [redirect, redirectTo] = useState();
     const dispatch = useDispatch();
+    const { showNotification } = useNotification();
 
     const loaded = useLoaderData();
-    if(loaded.success) redirect = '/main';
+    if (loaded.success) redirect = '/main';
 
     const [login, setNewLogin] = useState('');
     const [password, setNewPassword] = useState('');
 
-    function loginChangeHandle(ev) {setNewLogin(ev.target.value)}
-    function passwordChangeHandle(ev) {setNewPassword(ev.target.value)}
+    function loginChangeHandle(ev) { setNewLogin(ev.target.value) }
+    function passwordChangeHandle(ev) { setNewPassword(ev.target.value) }
 
     function loginHandle() {
-        if(!login || !password) return;
-        autoFetch('auth/login', 'POST', {login, password})
+        if (!login || !password) {
+            showNotification('Please enter both login and password');
+            return;
+        }
+        autoFetch('auth/login', 'POST', { login, password })
             .then(res => {
-                if(res.success) {
+                if (res.success) {
                     dispatch(setLogin(login));
                     dispatch(setPassword(password));
                     redirectTo('/main');
+                } else if (res.shouldShowNotification) {
+                    showNotification(res.error || 'Login failed');
                 }
             });
     }
 
     function registerHandle() {
-        if(!login || !password) return;
-        autoFetch('auth/register', 'POST', {login, password})
+        if (!login || !password) {
+            showNotification('Please enter both login and password');
+            return;
+        }
+        autoFetch('auth/register', 'POST', { login, password })
             .then(res => {
-                if(res.success) {
+                if (res.success) {
                     dispatch(setLogin(login));
                     dispatch(setPassword(password));
                     redirectTo('/main');
+                } else if (res.shouldShowNotification) {
+                    showNotification(res.error || 'Registration failed');
                 }
             });
     }
 
-    if(redirect) return (<Navigate to={`.${redirect}`} relative/>);
+    if (redirect) return (<Navigate to={`.${redirect}`} relative />);
 
-    return (<LoginApp fetcher={{loginChangeHandle, passwordChangeHandle, loginHandle, registerHandle}}/>);
+    return (<LoginApp fetcher={{ loginChangeHandle, passwordChangeHandle, loginHandle, registerHandle }} />);
 }
 
 export default LoginAppFetcher;
@@ -1447,7 +1563,7 @@ export async function getLogin() {
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\Graph.js
-Размер: 3370 байт
+Размер: 3891 байт
 Расширение: .js
 Содержимое:
 import {Expression, GraphingCalculator, elt} from "desmos-react";
@@ -1546,10 +1662,11 @@ function Figure({r}) {
     const color = '#ff7000';
 
     return (<>
-        <Expression id={'g1'} latex={`0<=y<=(${r}/2) \\{-${r}<=x<=0\\}`} color={color} lines={false}/>
-        <Expression id={'g3'} latex={`x^2+y^2<=(${r}^2/4) \\{x<=0\\} \\{y<=0\\}`} color={color} lines={false}/>
-        <Expression id={'g2'} latex={`2*x-${r}<=y<=0 \\{x>=0\\}`} color={color} lines={false}/>
-
+        {/* 1. Ð’ÐµÑ€Ñ…Ð½Ð¸Ð¹ Ð¿Ñ€Ð°Ð²Ñ‹Ð¹ ÐºÐ²Ð°Ð´Ñ€Ð°Ð½Ñ‚: xÂ² + yÂ² <= (rÂ²/4), Ð³Ð´Ðµ x > 0 Ð¸ y >= 0 */}
+        <Expression
+            id={'g1'}
+            latex={`x^2+y^2<=(${r}^2/4) \\{x>0\\} \\{y>=0\\}`}
+... [файл слишком большой, показаны первые 100 строк]
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\MainApp.js
 Размер: 1531 байт
@@ -1611,42 +1728,54 @@ function MainApp({fetcher, mode}) {
 export default MainApp;
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\MainAppFetcher.js
-Размер: 2727 байт
+Размер: 3914 байт
 Расширение: .js
 Содержимое:
-import {useState} from "react";
-import {Navigate, useLoaderData} from "react-router-dom";
-import {autoFetch} from "../Util";
+import { useState, useEffect } from "react";
+import { Navigate, useLoaderData } from "react-router-dom";
+import { autoFetch } from "../Util";
 import MainAppModed from "./MainAppModed";
-import {useDispatch} from "react-redux";
-import {resetLogin} from "../redux/login";
-import {resetPassword} from "../redux/password";
+import { useDispatch } from "react-redux";
+import { resetLogin } from "../redux/login";
+import { resetPassword } from "../redux/password";
 import store from "../store";
+import { useNotification } from "../NotificationContext";
 
 function MainAppFetcher(props) {
     let [redirect, redirectTo] = useState();
     const dispatch = useDispatch();
+    const { showNotification } = useNotification();
 
     const loaded = useLoaderData();
-    if(!loaded.success && !loaded.login) redirect = '/';
-    //const login = loaded.login;
+
+    // Ð˜ÑÐ¿Ð¾Ð»ÑŒÐ·ÑƒÐµÐ¼ useEffect Ð´Ð»Ñ Ð¾Ð±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ¸ Ñ€ÐµÐ´Ð¸Ñ€ÐµÐºÑ‚Ð° Ð¾Ð´Ð¸Ð½ Ñ€Ð°Ð·
+    useEffect(() => {
+        if (!loaded.success && !loaded.login) {
+            redirectTo('/');
+            // ÐŸÐ¾ÐºÐ°Ð·Ñ‹Ð²Ð°ÐµÐ¼ ÑƒÐ²ÐµÐ´Ð¾Ð¼Ð»ÐµÐ½Ð¸Ðµ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ ÐµÑÐ»Ð¸ ÑÑ‚Ð¾ Ð½Ðµ Ð¿ÐµÑ€Ð²Ñ‹Ð¹ Ð·Ð°Ñ…Ð¾Ð´
+            if (loaded.shouldShowNotification) {
+                showNotification('You are not logged in. Please log in first.');
+            }
+        }
+    }, [loaded, showNotification]);
+
     const login = store.getState().login.value;
 
     const [x, setX] = useState();
     const [y, setY] = useState();
     const [r, setR] = useState();
-    const [results, setResults] = useState(loaded.data);
+    const [results, setResults] = useState(loaded.data || []);
 
-    function handleX(ev) {
-        setX(+ev.target.value);
+    function handleX(value) {
+        setX(+value);
     }
 
-    function handleY(ev) {
-        setY(+ev.target.value);
+    function handleY(value) {
+        setY(+value);
     }
 
-    function handleR(ev) {
-        setR(+ev.target.value);
+    function handleR(value) {
+        setR(+value);
     }
 
     function handleSubmit() {
@@ -1661,49 +1790,51 @@ function MainAppFetcher(props) {
         autoFetch('clear')
             .then(res => {
                 if (res.success) setResults([]);
-                else if (!res.login) redirectTo('/');
+                else if (!res.login && res.shouldShowNotification) {
+                    showNotification(res.error || 'Failed to clear results');
+                }
             });
     }
 
     function handleLogout() {
         autoFetch('auth/logout', 'POST')
             .then(res => {
-                if (!res.login) {
-                    dispatch(resetLogin);
-                    dispatch(resetPassword);
+                if (res.success) {
+                    dispatch(resetLogin());
+                    dispatch(resetPassword());
                     redirectTo('/');
+                } else if (res.shouldShowNotification) {
+                    showNotification(res.error || 'Logout failed');
                 }
             });
     }
 
     async function checkHit(x, y) {
-        if (x === undefined) return alert("X value is undefined");
-        if (y === undefined || Number.isNaN(y)) return alert("Y value is undefined or incorrect");
-        if (r === undefined) return alert("R value is undefined");
-        if (!(x >= -4 && x <= 4)) return alert("X value is not in [-4; 4]");
-        if (!(y >= -3 && y <= 5)) return alert("Y value is not in [-3; 5]");
-        if (!(r > 0 && r <= 4)) return alert("R value is not in (0; 4]");
+        if (x === undefined) {
+            showNotification("X value is undefined");
+            return;
+        }
+        if (y === undefined || Number.isNaN(y)) {
+            showNotification("Y value is undefined or incorrect");
+            return;
+        }
+        if (r === undefined) {
+            showNotification("R value is undefined");
+            return;
+        }
 
-        let res = await autoFetch('check',
-            'POST', {x, y, r});
+        if (!(x >= -5 && x <= 3)) {
+            showNotification("X value is not in [-5; 3]");
+            return;
+        }
 
-        if (res.success) setResults([...results, res.data]);
-        else if (!res.login) redirectTo('/');
-    }
-
-    if (redirect) return (<Navigate to={`..${redirect}`} relative/>);
-    return (<MainAppModed fetcher={{r, results, handleX, handleY, handleR, handleSubmit, handleClear, handleGraphClick, handleLogout, login}}/>);
-
-}
-
-export async function LoadResults() {
-    return await autoFetch('results');
-}
-
-export default MainAppFetcher;
+        if (!(y >= -3 && y <= 5)) {
+            showNotification("Y value is not in [-3; 5]");
+            return;
+... [файл слишком большой, показаны первые 100 строк]
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\MainAppModed.js
-Размер: 829 байт
+Размер: 995 байт
 Расширение: .js
 Содержимое:
 import {useState, useEffect} from 'react';
@@ -1729,14 +1860,18 @@ export default function MainAppModed({fetcher}) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const isTablet = windowDimensions.width < 1252;
-    const isMobile = windowDimensions.width < 885;
+    // Ð’Ð°Ñˆ Ð²Ð°Ñ€Ð¸Ð°Ð½Ñ‚:
+    // Ð”ÐµÑÐºÑ‚Ð¾Ð¿: â‰¥1169px
+    // ÐŸÐ»Ð°Ð½ÑˆÐµÑ‚: 839-1169px
+    // ÐœÐ¾Ð±Ð¸Ð»ÑŒÐ½Ñ‹Ð¹: <839px
+    const isTablet = windowDimensions.width < 1169 && windowDimensions.width >= 839;
+    const isMobile = windowDimensions.width < 839;
 
     return <MainApp mode={{isMobile, isTablet}} fetcher={fetcher}/>;
 }
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\ResultTable.js
-Размер: 1206 байт
+Размер: 1232 байт
 Расширение: .js
 Содержимое:
 import {useEffect} from "react";
@@ -1748,8 +1883,9 @@ function ResultTable({results}) {
         table.scrollTo(0, table.scrollHeight);
     }, [results]);
 
-    const rendered = results.map((res, i) =>
-        <tr key={i} className={i===results.length-1 ? res.result ? 'last-row-hit' : 'last-row-miss' : ''}>
+
+    const rendered = results.slice().reverse().map((res, i) =>
+        <tr key={results.length - 1 - i} className={i===0 ? res.result ? 'last-row-hit' : 'last-row-miss' : ''}>
             <td>{res.x}</td>
             <td>{res.y}</td>
             <td>{res.r}</td>
@@ -1781,15 +1917,58 @@ function ResultTable({results}) {
 export default ResultTable;
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\main\UserInput.js
-Размер: 2703 байт
+Размер: 4808 байт
 Расширение: .js
 Содержимое:
 import {useState} from "react";
-import Input from 'react-toolbox/lib/input';
-import {Button} from 'react-toolbox/lib/button';
-
 
 function UserInput({fetcher}) {
+    const [yValue, setYValue] = useState('');
+
+    const handleYChange = (e) => {
+        const rawValue = e.target.value;
+
+        // Ð Ð°Ð·Ñ€ÐµÑˆÐ°ÐµÐ¼ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ñ†Ð¸Ñ„Ñ€Ñ‹, Ñ‚Ð¾Ñ‡ÐºÑƒ Ð¸ Ð¼Ð¸Ð½ÑƒÑ
+        let filtered = rawValue.replace(/[^0-9.-]/g, '');
+
+        // Ð£Ð´Ð°Ð»ÑÐµÐ¼ Ð»Ð¸ÑˆÐ½Ð¸Ðµ Ð¼Ð¸Ð½ÑƒÑÑ‹ (Ð¾ÑÑ‚Ð°Ð²Ð»ÑÐµÐ¼ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð¿ÐµÑ€Ð²Ñ‹Ð¹, ÐµÑÐ»Ð¸ Ð¾Ð½ Ð² Ð½Ð°Ñ‡Ð°Ð»Ðµ)
+        const minusCount = (filtered.match(/-/g) || []).length;
+        if (minusCount > 1) {
+            // ÐžÑÑ‚Ð°Ð²Ð»ÑÐµÐ¼ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð¿ÐµÑ€Ð²Ñ‹Ð¹ Ð¼Ð¸Ð½ÑƒÑ
+            filtered = filtered.replace(/-/g, '');
+            if (rawValue.includes('-')) {
+                filtered = '-' + filtered;
+            }
+        } else if (minusCount === 1 && !filtered.startsWith('-')) {
+            // Ð•ÑÐ»Ð¸ Ð¼Ð¸Ð½ÑƒÑ Ð½Ðµ Ð² Ð½Ð°Ñ‡Ð°Ð»Ðµ, ÑƒÐ´Ð°Ð»ÑÐµÐ¼ ÐµÐ³Ð¾
+            filtered = filtered.replace(/-/g, '');
+        }
+
+        // Ð£Ð´Ð°Ð»ÑÐµÐ¼ Ð»Ð¸ÑˆÐ½Ð¸Ðµ Ñ‚Ð¾Ñ‡ÐºÐ¸ (Ð¾ÑÑ‚Ð°Ð²Ð»ÑÐµÐ¼ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð¿ÐµÑ€Ð²ÑƒÑŽ)
+        const dotCount = (filtered.match(/\./g) || []).length;
+        if (dotCount > 1) {
+            const parts = filtered.split('.');
+            filtered = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼, Ñ‡Ñ‚Ð¾ Ð¿Ð¾ÑÐ»Ðµ Ð¼Ð¸Ð½ÑƒÑÐ° Ð½ÐµÑ‚ Ñ‚Ð¾Ñ‡ÐºÐ¸
+        if (filtered.startsWith('-.')) {
+            filtered = '-0.' + filtered.slice(2);
+        }
+
+        // ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼, Ñ‡Ñ‚Ð¾ ÑÑ‚Ñ€Ð¾ÐºÐ° Ð½Ðµ Ð½Ð°Ñ‡Ð¸Ð½Ð°ÐµÑ‚ÑÑ Ñ Ñ‚Ð¾Ñ‡ÐºÐ¸
+        if (filtered.startsWith('.')) {
+            filtered = '0.' + filtered.slice(1);
+        }
+
+        setYValue(filtered);
+
+        // ÐŸÑ€ÐµÐ¾Ð±Ñ€Ð°Ð·ÑƒÐµÐ¼ Ð² Ñ‡Ð¸ÑÐ»Ð¾ Ð´Ð»Ñ Ð¾Ð±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ¸
+        const num = filtered === '' || filtered === '-' || filtered === '.' ?
+            undefined :
+            parseFloat(filtered);
+        fetcher.handleY(num);
+    };
 
     return (
         <table id="input-table">
@@ -1800,20 +1979,29 @@ function UserInput({fetcher}) {
             <tr>
                 <td className="input-cell-l">X:</td>
                 <td id="x-cell">
-                    <ButtonPanel id="x-table" from={-4} to={4} onChange={fetcher.handleX}/>
+                    <ButtonPanel id="x-table" from={-5} to={3} onChange={fetcher.handleX}/>
                 </td>
             </tr>
             <tr>
                 <td className="input-cell-l">Y:</td>
                 <td id="y-cell">
-                    <Input className="input-select rounded box" id="y-select" name="y-select" placeholder="Enter value"
-                           required type="text" maxLength={10} onChange={fetcher.handleY}/>
+                    <input
+                        className="input-select rounded box"
+                        id="y-select"
+                        name="y-select"
+                        placeholder="Enter value"
+                        required
+                        type="text"
+                        maxLength={10}
+                        value={yValue}
+                        onChange={handleYChange}
+                    />
                 </td>
             </tr>
             <tr>
                 <td className="input-cell-l">R:</td>
                 <td id="r-cell">
-                    <ButtonPanel id="r-table" from={-4} to={4} onChange={fetcher.handleR}/>
+                    <ButtonPanel id="r-table" from={-5} to={3} onChange={fetcher.handleR}/>
                 </td>
             </tr>
             <tr>
@@ -1832,42 +2020,7 @@ function UserInput({fetcher}) {
 }
 
 function ButtonPanel(props) {
-
-    const [selectedKey, setSelectedKey] = useState();
-    const onChange = props.onChange;
-
-    const buttons = [];
-    for (let i = props.from; i <= props.to; i++) {
-        buttons.push(
-            <td className="button" key={i}>
-                <Button className={`small-button rounded ${selectedKey === i ? "selected" : ""}`}
-                        key={i} value={i} onClick={() => {
-                    setSelectedKey(i);
-                    onChange({target: {value: i}});
-                }}>
-                    {i}
-                </Button>
-            </td>
-        );
-    }
-
-    const rows = [];
-    for (let i = 0; i < buttons.length; i += 3) {
-        rows.push(
-            <tr key={i}>
-                {buttons.slice(i, Math.min(i + 3, buttons.length))}
-            </tr>
-        );
-    }
-
-    return (
-        <table id={props.id}>
-            <tbody>{rows}</tbody>
-        </table>
-    );
-}
-
-export default UserInput;
+... [файл слишком большой, показаны первые 100 строк]
 ---
 Файл: C:\Code\web\lab4\itmo-web-lab-4\front\src\redux\login.js
 Размер: 471 байт

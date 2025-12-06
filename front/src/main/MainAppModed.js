@@ -21,9 +21,9 @@ export default function MainAppModed({fetcher}) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Ваш вариант:
+    // Обновленные границы:
     // Десктоп: ≥1169px
-    // Планшет: 839-1169px
+    // Планшет: 839-1168px
     // Мобильный: <839px
     const isTablet = windowDimensions.width < 1169 && windowDimensions.width >= 839;
     const isMobile = windowDimensions.width < 839;
